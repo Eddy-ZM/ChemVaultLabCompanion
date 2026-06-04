@@ -16,11 +16,11 @@ struct ContentView: View {
                         goToStage(1)
                     }
                 case 1:
-                    HomeView {
+                    HomeView(caseFile: caseFile) {
                         goToStage(2)
                     }
                 case 2:
-                    LabMissionView {
+                    LabMissionView(caseFile: caseFile) {
                         goToStage(3)
                     }
                 case 3:
@@ -29,7 +29,8 @@ struct ContentView: View {
                         goToStage(4)
                     }
                 case 4:
-                    MechanismExplorerView {
+                    MechanismExplorerView(caseFile: caseFile) {
+                        caseFile.reviewedMechanismProofIDs = Set(MechanismProof.allCases.map(\.rawValue))
                         goToStage(5)
                     }
                 case 5:
@@ -38,7 +39,7 @@ struct ContentView: View {
                         goToStage(6)
                     }
                 case 6:
-                    DataCheckView { record in
+                    DataCheckView(caseFile: caseFile) { record in
                         caseFile.yieldRecord = record
                         goToStage(7)
                     }

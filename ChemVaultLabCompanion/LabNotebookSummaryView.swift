@@ -17,20 +17,32 @@ struct LabNotebookSummaryView: View {
                         completionHero(compact: compact)
                             .smoothAppear(delay: 0.04)
 
+                        MentorGradeView(caseFile: caseFile, compact: compact)
+                            .smoothAppear(delay: 0.10)
+
                         achievementGrid(compact: compact)
-                            .smoothAppear(delay: 0.14)
+                            .smoothAppear(delay: 0.16)
 
                         caseReport(compact: compact)
-                            .smoothAppear(delay: 0.20)
+                            .smoothAppear(delay: 0.22)
+
+                        evidenceTimeline(compact: compact)
+                            .smoothAppear(delay: 0.28)
 
                         notebookTabs(compact: compact)
-                            .smoothAppear(delay: 0.26)
-
-                        notebookContent(compact: compact)
                             .smoothAppear(delay: 0.34)
 
+                        notebookContent(compact: compact)
+                            .smoothAppear(delay: 0.40)
+
+                        generatedConclusion(compact: compact)
+                            .smoothAppear(delay: 0.46)
+
+                        blockersPanel(compact: compact)
+                            .smoothAppear(delay: 0.52)
+
                         labReadinessCard(compact: compact)
-                            .smoothAppear(delay: 0.42)
+                            .smoothAppear(delay: 0.58)
 
                         Spacer(minLength: 110)
                     }
@@ -178,6 +190,12 @@ struct LabNotebookSummaryView: View {
         }
     }
 
+    private func evidenceTimeline(compact: Bool) -> some View {
+        PremiumGlassPanel(cornerRadius: compact ? 24 : 30) {
+            CaseTimelineView(items: caseFile.evidenceItems, compact: compact)
+        }
+    }
+
     private func notebookTabs(compact: Bool) -> some View {
         PremiumGlassPanel(cornerRadius: compact ? 22 : 28) {
             VStack(alignment: .leading, spacing: 12) {
@@ -259,6 +277,71 @@ struct LabNotebookSummaryView: View {
         .animation(.spring(response: 0.55, dampingFraction: 0.84), value: selectedSection)
     }
 
+    private func generatedConclusion(compact: Bool) -> some View {
+        PremiumGlassPanel(cornerRadius: compact ? 24 : 30) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label("Notebook-Ready Conclusion", systemImage: "doc.text.fill")
+                        .font(.headline)
+                        .foregroundStyle(ChemVaultTheme.text)
+
+                    Spacer()
+
+                    Text(caseFile.mentorGrade.rawValue)
+                        .font(.caption.bold())
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(caseFile.mentorGrade.tintRole.color)
+                        .clipShape(Capsule())
+                }
+
+                Text(caseFile.notebookConclusion)
+                    .font(compact ? .subheadline : .body)
+                    .foregroundStyle(ChemVaultTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func blockersPanel(compact: Bool) -> some View {
+        PremiumGlassPanel(cornerRadius: compact ? 24 : 30) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label(
+                        caseFile.unresolvedBlockers.isEmpty ? "Evidence Clear" : "Review Queue",
+                        systemImage: caseFile.unresolvedBlockers.isEmpty ? "checkmark.seal.fill" : "exclamationmark.triangle.fill"
+                    )
+                    .font(.headline)
+                    .foregroundStyle(ChemVaultTheme.text)
+
+                    Spacer()
+                }
+
+                if caseFile.unresolvedBlockers.isEmpty {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(ChemVaultTheme.success)
+
+                        Text("No unresolved blockers remain. The report connects safety, mechanism, data, and conclusion into one coherent pre-lab explanation.")
+                            .font(.subheadline)
+                            .foregroundStyle(ChemVaultTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .background(ChemVaultTheme.success.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(caseFile.unresolvedBlockers) { blocker in
+                            NotebookBlockerRow(blocker: blocker)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func labReadinessCard(compact: Bool) -> some View {
         PremiumGlassPanel(cornerRadius: compact ? 24 : 30) {
             VStack(alignment: .leading, spacing: 14) {
@@ -269,19 +352,22 @@ struct LabNotebookSummaryView: View {
 
                     Spacer()
 
-                    Text("Ready")
+                    Text(caseFile.readiness.statusText)
                         .font(.caption.bold())
                         .foregroundStyle(.black)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(ChemVaultTheme.success)
+                        .background(caseFile.readiness.tint)
                         .clipShape(Capsule())
                 }
 
-                ReadinessMeter()
+                ReadinessMeter(
+                    progress: Double(caseFile.readinessScore) / 100,
+                    tint: caseFile.readiness.tint
+                )
                     .frame(height: 72)
 
-                Text("You can now explain the role of dry conditions, identify the nucleophilic carbon, follow the curved arrows, distinguish the magnesium alkoxide from the final alcohol, and interpret experimental yield.")
+                Text(caseFile.nextRecommendation)
                     .font(.caption)
                     .foregroundStyle(ChemVaultTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -492,8 +578,54 @@ struct NotebookCaseReportCard: View {
     }
 }
 
+struct NotebookBlockerRow: View {
+    let blocker: CaseBlocker
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(ChemVaultTheme.warning.opacity(0.16))
+                    .frame(width: 38, height: 38)
+
+                Image(systemName: blocker.icon)
+                    .font(.headline)
+                    .foregroundStyle(ChemVaultTheme.warning)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(blocker.title)
+                    .font(.caption.bold())
+                    .foregroundStyle(ChemVaultTheme.warning)
+
+                Text(blocker.detail)
+                    .font(.subheadline)
+                    .foregroundStyle(ChemVaultTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .background(ChemVaultTheme.warning.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(ChemVaultTheme.warning.opacity(0.18), lineWidth: 1)
+        )
+    }
+}
+
 struct ReadinessMeter: View {
-    @State private var progress: CGFloat = 0
+    let targetProgress: Double
+    let tint: Color
+
+    @State private var animatedProgress: CGFloat = 0
+
+    init(progress: Double, tint: Color) {
+        self.targetProgress = max(0, min(1, progress))
+        self.tint = tint
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -509,19 +641,19 @@ struct ReadinessMeter: View {
                                 colors: [
                                     ChemVaultTheme.accent,
                                     ChemVaultTheme.softAccent,
-                                    ChemVaultTheme.success
+                                    tint
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: proxy.size.width * progress, height: 10)
+                        .frame(width: proxy.size.width * animatedProgress, height: 10)
 
                     Circle()
-                        .fill(ChemVaultTheme.success)
+                        .fill(tint)
                         .frame(width: 20, height: 20)
-                        .offset(x: max(0, proxy.size.width * progress - 10))
-                        .shadow(color: ChemVaultTheme.success.opacity(0.6), radius: 10)
+                        .offset(x: max(0, proxy.size.width * animatedProgress - 10))
+                        .shadow(color: tint.opacity(0.6), radius: 10)
                 }
             }
             .frame(height: 22)
@@ -536,7 +668,12 @@ struct ReadinessMeter: View {
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 1.2).delay(0.25)) {
-                progress = 1.0
+                animatedProgress = targetProgress
+            }
+        }
+        .onChange(of: targetProgress) { _, newValue in
+            withAnimation(.easeInOut(duration: 0.8)) {
+                animatedProgress = CGFloat(newValue)
             }
         }
     }

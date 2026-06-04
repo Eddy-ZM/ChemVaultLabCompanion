@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DataCheckView: View {
+    let caseFile: LabCaseFile
     let onComplete: (YieldRecord) -> Void
 
     @State private var actualMass = "0.548"
@@ -17,41 +18,57 @@ struct DataCheckView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                ProgressHeaderView(
-                    currentStep: 3,
-                    title: "Data Check",
-                    subtitle: "Connect mass measurements to experimental quality."
-                )
-                .smoothAppear(delay: 0.04)
+        GeometryReader { geometry in
+            let compact = geometry.size.width < 430
 
-                inputCard
-                    .smoothAppear(delay: 0.16)
-
-                yieldCard
-                    .smoothAppear(delay: 0.28)
-
-                interpretationCard
-                    .smoothAppear(delay: 0.40)
-
-                diagnosisCard
-                    .smoothAppear(delay: 0.46)
-
-                PrimaryButton("Complete Lab", icon: "checkmark") {
-                    onComplete(
-                        YieldRecord(
-                            percent: yieldValue,
-                            diagnosis: yieldDiagnosis
-                        )
+            ScrollView {
+                VStack(spacing: compact ? 18 : 24) {
+                    ProgressHeaderView(
+                        currentStep: 3,
+                        title: "Data Check",
+                        subtitle: "Connect mass measurements to experimental quality."
                     )
+                    .smoothAppear(delay: 0.04)
+
+                    EvidenceLedgerView(caseFile: liveCaseFile, compact: compact)
+                        .smoothAppear(delay: 0.10)
+
+                    inputCard
+                        .smoothAppear(delay: 0.16)
+
+                    yieldCard
+                        .smoothAppear(delay: 0.28)
+
+                    interpretationCard
+                        .smoothAppear(delay: 0.40)
+
+                    yieldBandCard
+                        .smoothAppear(delay: 0.43)
+
+                    diagnosisCard
+                        .smoothAppear(delay: 0.46)
+
+                    PrimaryButton("Complete Lab", icon: "checkmark") {
+                        onComplete(
+                            YieldRecord(
+                                percent: yieldValue,
+                                diagnosis: yieldDiagnosis
+                            )
+                        )
+                    }
+                    .smoothAppear(delay: 0.52)
                 }
-                .smoothAppear(delay: 0.52)
+                .padding(compact ? 16 : 24)
+                .frame(maxWidth: 760)
+                .frame(maxWidth: .infinity)
             }
-            .padding(24)
-            .frame(maxWidth: 760)
-            .frame(maxWidth: .infinity)
         }
+    }
+
+    private var liveCaseFile: LabCaseFile {
+        var updated = caseFile
+        updated.yieldRecord = YieldRecord(percent: yieldValue, diagnosis: yieldDiagnosis)
+        return updated
     }
 
     private var inputCard: some View {
@@ -172,6 +189,33 @@ struct DataCheckView: View {
         }
     }
 
+    private var yieldBandCard: some View {
+        ChemCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label("Forensic Yield Bands", systemImage: "waveform.path.ecg.rectangle")
+                        .font(.title3.bold())
+                        .foregroundStyle(ChemVaultTheme.text)
+
+                    Spacer()
+                }
+
+                VStack(spacing: 8) {
+                    YieldBandRow(title: "< 40%", detail: "Low: moisture, incomplete reaction, transfer loss", active: yieldDiagnosis == .low, tint: ChemVaultTheme.warning)
+                    YieldBandRow(title: "40-80%", detail: "Reasonable: reaction worked with normal workup loss", active: yieldDiagnosis == .reasonable, tint: ChemVaultTheme.success)
+                    YieldBandRow(title: "80-100%", detail: "High: promising, still needs purity confirmation", active: yieldDiagnosis == .high, tint: ChemVaultTheme.softAccent)
+                    YieldBandRow(title: "> 100%", detail: "Suspicious: wet product, solvent, impurity, weighing error", active: yieldDiagnosis == .suspicious, tint: ChemVaultTheme.warning)
+                }
+
+                Text(caseLinkedDataExplanation)
+                    .font(.caption)
+                    .foregroundStyle(ChemVaultTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private var progressFraction: CGFloat {
         guard let yieldValue else { return 0 }
         return CGFloat(min(max(yieldValue / 100, 0), 1))
@@ -194,6 +238,47 @@ struct DataCheckView: View {
         case .high:
             return "This is a high yield. It is still important to confirm purity using analytical data such as IR or NMR."
         }
+    }
+
+    private var caseLinkedDataExplanation: String {
+        if !caseFile.safetyDiagnosis.identifiedMoistureRisk {
+            return "The ledger still lacks the strongest safety clue, so a low yield should be treated as possible moisture damage until proven otherwise."
+        }
+
+        if !caseFile.challengeResult.misconceptions.isEmpty {
+            return "Because the mechanism challenge found misconceptions, use yield data carefully: the notebook should separate experimental loss from mechanism misunderstanding."
+        }
+
+        return "The safety and mechanism evidence make the yield meaningful: the number now acts as experimental evidence, not an isolated calculation."
+    }
+}
+
+struct YieldBandRow: View {
+    let title: String
+    let detail: String
+    let active: Bool
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(.caption.bold())
+                .foregroundStyle(active ? .black : ChemVaultTheme.secondaryText)
+                .frame(width: 58)
+                .padding(.vertical, 7)
+                .background(active ? tint : .white.opacity(0.065))
+                .clipShape(Capsule())
+
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(active ? ChemVaultTheme.text : ChemVaultTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(9)
+        .background(active ? tint.opacity(0.12) : .white.opacity(0.035))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

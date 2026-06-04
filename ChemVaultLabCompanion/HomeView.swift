@@ -1,30 +1,41 @@
 import SwiftUI
 
 struct HomeView: View {
+    let caseFile: LabCaseFile
     let onStart: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 22) {
-                Spacer(minLength: 36)
+        GeometryReader { geometry in
+            let compact = geometry.size.width < 430
 
-                hero
-                    .smoothAppear(delay: 0.05)
+            ScrollView {
+                VStack(spacing: 22) {
+                    Spacer(minLength: compact ? 20 : 36)
 
-                caseDossier
-                    .smoothAppear(delay: 0.16)
+                    hero
+                        .smoothAppear(delay: 0.05)
 
-                routeCards
-                    .smoothAppear(delay: 0.27)
+                    caseDossier
+                        .smoothAppear(delay: 0.16)
 
-                startButton
-                    .smoothAppear(delay: 0.38)
+                    EvidenceLedgerView(caseFile: caseFile, compact: compact)
+                        .smoothAppear(delay: 0.24)
 
-                Spacer(minLength: 32)
+                    caseHypothesis
+                        .smoothAppear(delay: 0.32)
+
+                    routeCards
+                        .smoothAppear(delay: 0.40)
+
+                    startButton
+                        .smoothAppear(delay: 0.48)
+
+                    Spacer(minLength: 32)
+                }
+                .padding(24)
+                .frame(maxWidth: 780)
+                .frame(maxWidth: .infinity)
             }
-            .padding(24)
-            .frame(maxWidth: 780)
-            .frame(maxWidth: .infinity)
         }
     }
 
@@ -60,6 +71,35 @@ struct HomeView: View {
                     .foregroundStyle(ChemVaultTheme.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.top, 4)
+            }
+        }
+    }
+
+    private var caseHypothesis: some View {
+        PremiumGlassPanel(cornerRadius: 28) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label("Case Hypothesis", systemImage: "lightbulb.max.fill")
+                        .font(.headline)
+                        .foregroundStyle(ChemVaultTheme.text)
+
+                    Spacer()
+
+                    Text(caseFile.mentorGrade.rawValue)
+                        .font(.caption.bold())
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(caseFile.mentorGrade.tintRole.color)
+                        .clipShape(Capsule())
+                }
+
+                Text("The reaction did not simply \"go wrong\". The evidence must show whether the loss came from moisture, a mechanism misconception, or unreliable yield data.")
+                    .font(.subheadline)
+                    .foregroundStyle(ChemVaultTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                MentorGradeView(caseFile: caseFile, compact: false)
             }
         }
     }

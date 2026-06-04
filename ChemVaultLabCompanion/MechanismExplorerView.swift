@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MechanismExplorerView: View {
+    let caseFile: LabCaseFile
     let onComplete: () -> Void
 
     @State private var stepIndex = 0
@@ -23,11 +24,17 @@ struct MechanismExplorerView: View {
                         header(compact: compact)
                             .smoothAppear(delay: 0.04)
 
+                        EvidenceLedgerView(caseFile: caseFile, compact: compact)
+                            .smoothAppear(delay: 0.08)
+
                         MechanismChapterStrip(currentStep: currentCinemaStep)
-                            .smoothAppear(delay: 0.10)
+                            .smoothAppear(delay: 0.12)
 
                         MechanismEvidenceStrip(step: currentCinemaStep)
-                            .smoothAppear(delay: 0.13)
+                            .smoothAppear(delay: 0.15)
+
+                        MechanismProofCard(step: currentCinemaStep, compact: compact)
+                            .smoothAppear(delay: 0.18)
 
                         PremiumGlassPanel(cornerRadius: compact ? 24 : 34) {
                             VStack(spacing: 12) {
@@ -46,10 +53,10 @@ struct MechanismExplorerView: View {
                                 )
                             }
                         }
-                        .smoothAppear(delay: 0.16)
+                        .smoothAppear(delay: 0.22)
 
                         MechanismStoryPanel(step: currentCinemaStep)
-                            .smoothAppear(delay: 0.24)
+                        .smoothAppear(delay: 0.30)
 
                         MechanismFocusPanel(
                             step: currentCinemaStep,
@@ -59,10 +66,10 @@ struct MechanismExplorerView: View {
                                 focusMode = selected
                             }
                         }
-                        .smoothAppear(delay: 0.32)
+                        .smoothAppear(delay: 0.38)
 
                         AcademicEnergyProfileView(stepIndex: min(stepIndex, 4))
-                            .smoothAppear(delay: 0.40)
+                        .smoothAppear(delay: 0.46)
                     }
                     .padding(.horizontal, horizontalPadding)
                     .padding(.top, compact ? 12 : 24)
@@ -223,8 +230,90 @@ struct MechanismExplorerView: View {
     }
 }
 
+private struct MechanismProofCard: View {
+    let step: CinemaStep
+    let compact: Bool
+
+    private var proof: MechanismProof {
+        step.mechanismProof
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(ChemVaultTheme.softAccent.opacity(0.18))
+                    .frame(width: compact ? 42 : 50, height: compact ? 42 : 50)
+
+                Image(systemName: proof.icon)
+                    .font(.headline)
+                    .foregroundStyle(ChemVaultTheme.softAccent)
+            }
+
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 8) {
+                    Text("Proof Card")
+                        .font(.caption.bold())
+                        .foregroundStyle(ChemVaultTheme.softAccent)
+
+                    Text(step.story.chapter)
+                        .font(.caption2.bold())
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(ChemVaultTheme.softAccent)
+                        .clipShape(Capsule())
+                }
+
+                Text(proof.title)
+                    .font(compact ? .headline : .title3.bold())
+                    .foregroundStyle(ChemVaultTheme.text)
+
+                Text(proof.detail)
+                    .font(.subheadline)
+                    .foregroundStyle(ChemVaultTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("Notebook use: \(step.story.whyItMatters)")
+                    .font(.caption)
+                    .foregroundStyle(ChemVaultTheme.tertiaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding()
+        .background(.white.opacity(0.055))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(ChemVaultTheme.softAccent.opacity(0.16), lineWidth: 1)
+        )
+        .animation(.spring(response: 0.55, dampingFraction: 0.84), value: step.rawValue)
+    }
+}
+
+private extension CinemaStep {
+    var mechanismProof: MechanismProof {
+        switch self {
+        case .electronicPreparation:
+            return .polarity
+        case .lewisAcidActivation:
+            return .coordination
+        case .orbitalAlignment:
+            return .orbitalAlignment
+        case .electronMovement:
+            return .electronFlow
+        case .magnesiumAlkoxide:
+            return .alkoxide
+        case .acidicWorkup:
+            return .workup
+        }
+    }
+}
+
 #Preview {
-    MechanismExplorerView {
+    MechanismExplorerView(caseFile: .sampleReady) {
         print("Complete")
     }
 }

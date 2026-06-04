@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LabMissionView: View {
+    let caseFile: LabCaseFile
     let onBegin: () -> Void
 
     @State private var appear = false
@@ -49,14 +50,17 @@ struct LabMissionView: View {
                         missionHero(compact: compact)
                             .smoothAppear(delay: 0.04)
 
+                        EvidenceLedgerView(caseFile: caseFile, compact: compact)
+                            .smoothAppear(delay: 0.10)
+
                         missionBriefing(compact: compact)
-                            .smoothAppear(delay: 0.16)
+                            .smoothAppear(delay: 0.18)
 
                         missionChecklist(compact: compact)
-                            .smoothAppear(delay: 0.28)
+                            .smoothAppear(delay: 0.30)
 
                         simulationPreview(compact: compact)
-                            .smoothAppear(delay: 0.40)
+                            .smoothAppear(delay: 0.42)
 
                         Spacer(minLength: 100)
                     }
@@ -135,7 +139,7 @@ struct LabMissionView: View {
 
                 reactionEquation(compact: compact)
 
-                Text("Your goal is not only to predict the product. Your goal is to collect evidence: why the reaction works, why it fails under wet conditions, and what the experimental data means afterwards.")
+                Text("Your goal is to build an evidence chain before writing the notebook: identify the reagent killer, prove the electron flow, avoid the premature alcohol misconception, then decide whether the yield can be trusted.")
                     .font(compact ? .subheadline : .body)
                     .foregroundStyle(ChemVaultTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

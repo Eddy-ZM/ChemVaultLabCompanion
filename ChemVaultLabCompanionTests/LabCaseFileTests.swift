@@ -23,7 +23,7 @@ struct LabCaseFileTests {
         )
         caseFile.yieldRecord = YieldRecord(percent: 68.5, diagnosis: .reasonable)
 
-        #expect(caseFile.readiness == .ready)
+        #expect(caseFile.readiness.statusText == "Ready")
         #expect(caseFile.conclusionTitle == "Lab-ready case file")
     }
 
@@ -40,7 +40,7 @@ struct LabCaseFileTests {
         )
         caseFile.yieldRecord = YieldRecord(percent: 68.5, diagnosis: .reasonable)
 
-        #expect(caseFile.readiness == .needsReview)
+        #expect(caseFile.readiness.statusText == "Review")
         #expect(caseFile.mentorNote.contains("Review"))
     }
 
@@ -57,7 +57,34 @@ struct LabCaseFileTests {
         )
         caseFile.yieldRecord = YieldRecord(percent: 130, diagnosis: .suspicious)
 
-        #expect(caseFile.readiness == .dataSuspicious)
+        #expect(caseFile.readiness.statusText == "Check data")
         #expect(caseFile.conclusionTitle == "Data needs checking")
+    }
+
+    @Test func evidenceProgressReflectsCollectedCaseEvidence() {
+        let caseFile = LabCaseFile.sampleReady
+
+        #expect(caseFile.evidenceCompletion == 1.0)
+        #expect(caseFile.evidenceItems.filter(\.isConfirmed).count == caseFile.evidenceItems.count)
+        #expect(caseFile.unresolvedBlockers.isEmpty)
+        #expect(caseFile.mentorGrade == .distinction)
+    }
+
+    @Test func incompleteCaseProducesBlockersAndRecommendation() {
+        let caseFile = LabCaseFile()
+
+        #expect(caseFile.evidenceCompletion < 0.5)
+        #expect(!caseFile.unresolvedBlockers.isEmpty)
+        #expect(caseFile.nextRecommendation.contains("Start"))
+        #expect(caseFile.mentorGrade == .incomplete)
+    }
+
+    @Test func suspiciousYieldReceivesDataGradePenalty() {
+        var caseFile = LabCaseFile.sampleReady
+        caseFile.yieldRecord = YieldRecord(percent: 124, diagnosis: .suspicious)
+
+        #expect(caseFile.mentorGrade == .review)
+        #expect(caseFile.unresolvedBlockers.contains { $0.title.contains("Yield") })
+        #expect(caseFile.notebookConclusion.contains("above 100%"))
     }
 }

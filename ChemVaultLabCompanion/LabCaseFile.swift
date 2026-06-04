@@ -5,6 +5,15 @@ struct LabCaseFile: Equatable {
     var safetyDiagnosis = SafetyDiagnosis()
     var challengeResult = MechanismChallengeResult()
     var yieldRecord = YieldRecord()
+    var reviewedMechanismProofIDs: Set<String> = []
+
+    private var confirmedMechanismProofs: Int {
+        MechanismProof.allCases.filter { reviewedMechanismProofIDs.contains($0.rawValue) }.count
+    }
+
+    private var completedMechanismCinema: Bool {
+        confirmedMechanismProofs == MechanismProof.allCases.count
+    }
 
     var readiness: LabReadiness {
         if yieldRecord.diagnosis == .suspicious {
@@ -20,6 +29,218 @@ struct LabCaseFile: Equatable {
         }
 
         return .ready
+    }
+
+    var evidenceItems: [CaseEvidenceItem] {
+        let safety = CaseEvidenceItem(
+            id: "safety-moisture",
+            title: "Moisture risk",
+            detail: safetyDiagnosis.identifiedMoistureRisk
+                ? "Wet glassware was identified as the reagent killer."
+                : "Find why water destroys the C-Mg bond.",
+            icon: "drop.triangle.fill",
+            tintRole: safetyDiagnosis.identifiedMoistureRisk ? .success : .warning,
+            isConfirmed: safetyDiagnosis.identifiedMoistureRisk
+        )
+
+        let mechanism = MechanismProof.allCases.map { proof in
+            proof.evidenceItem(isConfirmed: reviewedMechanismProofIDs.contains(proof.rawValue))
+        }
+
+        let challenge = CaseEvidenceItem(
+            id: "challenge-diagnosis",
+            title: "Reasoning check",
+            detail: challengeResult.totalQuestions == 0
+                ? "Complete the mechanism challenge."
+                : "Challenge score: \(challengeResult.scoreText)",
+            icon: challengeResult.misconceptions.isEmpty ? "checkmark.seal.fill" : "brain.head.profile",
+            tintRole: challengeResult.totalQuestions == 0 ? .neutral : (challengeResult.misconceptions.isEmpty ? .success : .warning),
+            isConfirmed: challengeResult.totalQuestions > 0 && challengeResult.misconceptions.isEmpty
+        )
+
+        let data = CaseEvidenceItem(
+            id: "yield-diagnosis",
+            title: "Yield diagnosis",
+            detail: yieldRecord.diagnosis == .notCalculated
+                ? "Enter mass data to classify yield."
+                : yieldSummary,
+            icon: yieldRecord.diagnosis.icon,
+            tintRole: yieldRecord.diagnosis == .notCalculated ? .neutral : (yieldRecord.diagnosis == .suspicious ? .warning : .success),
+            isConfirmed: yieldRecord.diagnosis != .notCalculated && yieldRecord.diagnosis != .suspicious
+        )
+
+        return [safety] + mechanism + [challenge, data]
+    }
+
+    var evidenceCompletion: Double {
+        guard !evidenceItems.isEmpty else { return 0 }
+        let confirmed = evidenceItems.filter(\.isConfirmed).count
+        return Double(confirmed) / Double(evidenceItems.count)
+    }
+
+    var evidenceCompletionText: String {
+        "\(Int((evidenceCompletion * 100).rounded()))%"
+    }
+
+    var confirmedEvidenceCount: Int {
+        evidenceItems.filter(\.isConfirmed).count
+    }
+
+    var mechanismProofProgressText: String {
+        "\(confirmedMechanismProofs)/\(MechanismProof.allCases.count)"
+    }
+
+    var unresolvedBlockers: [CaseBlocker] {
+        var blockers: [CaseBlocker] = []
+
+        if !safetyDiagnosis.identifiedMoistureRisk {
+            blockers.append(
+                CaseBlocker(
+                    id: "moisture-risk",
+                    title: "Moisture risk unresolved",
+                    detail: "The case file still needs the key safety finding: water protonates and destroys the Grignard reagent.",
+                    icon: "drop.triangle.fill"
+                )
+            )
+        }
+
+        if !completedMechanismCinema {
+            blockers.append(
+                CaseBlocker(
+                    id: "mechanism-proof",
+                    title: "Mechanism proof incomplete",
+                    detail: "Review the mechanism cinema until the polarity, activation, electron-flow, intermediate, and workup evidence is collected.",
+                    icon: "arrow.triangle.branch"
+                )
+            )
+        }
+
+        if challengeResult.totalQuestions == 0 {
+            blockers.append(
+                CaseBlocker(
+                    id: "challenge-missing",
+                    title: "Reasoning challenge missing",
+                    detail: "Complete the mechanism challenge so the notebook can diagnose misconceptions.",
+                    icon: "brain.head.profile"
+                )
+            )
+        } else if !challengeResult.misconceptions.isEmpty {
+            blockers.append(
+                CaseBlocker(
+                    id: "challenge-review",
+                    title: "Mechanism misconception detected",
+                    detail: challengeResult.misconceptions.map(\.revisionPrompt).joined(separator: " "),
+                    icon: "exclamationmark.triangle.fill"
+                )
+            )
+        }
+
+        if yieldRecord.diagnosis == .notCalculated {
+            blockers.append(
+                CaseBlocker(
+                    id: "yield-missing",
+                    title: "Yield diagnosis missing",
+                    detail: "Enter actual and theoretical mass values before trusting the final case verdict.",
+                    icon: "chart.xyaxis.line"
+                )
+            )
+        } else if yieldRecord.diagnosis == .suspicious {
+            blockers.append(
+                CaseBlocker(
+                    id: "yield-suspicious",
+                    title: "Yield data suspicious",
+                    detail: "A yield above 100% suggests residual solvent, wet product, impurity, or weighing error.",
+                    icon: "xmark.octagon.fill"
+                )
+            )
+        }
+
+        return blockers
+    }
+
+    var readinessScore: Int {
+        let base = Int((evidenceCompletion * 100).rounded())
+
+        switch readiness {
+        case .ready:
+            return base
+        case .needsReview:
+            return min(base, 74)
+        case .dataSuspicious:
+            return min(base, 62)
+        case .inProgress:
+            return min(base, 55)
+        }
+    }
+
+    var mentorGrade: MentorGrade {
+        if challengeResult.totalQuestions == 0 || yieldRecord.diagnosis == .notCalculated || !completedMechanismCinema {
+            return .incomplete
+        }
+
+        if readiness == .dataSuspicious || readiness == .needsReview {
+            return .review
+        }
+
+        if readinessScore >= 92 {
+            return .distinction
+        }
+
+        return .strong
+    }
+
+    var nextRecommendation: String {
+        if !safetyDiagnosis.identifiedMoistureRisk {
+            return "Start by identifying wet glassware as the critical Grignard risk."
+        }
+
+        if !completedMechanismCinema {
+            return "Review the Mechanism Cinema proof cards before writing the notebook conclusion."
+        }
+
+        if challengeResult.totalQuestions == 0 {
+            return "Complete the mechanism challenge to test whether the evidence is understood."
+        }
+
+        if let misconception = challengeResult.misconceptions.first {
+            return misconception.revisionPrompt
+        }
+
+        if yieldRecord.diagnosis == .notCalculated {
+            return "Enter mass data to connect the mechanism to experimental quality."
+        }
+
+        if yieldRecord.diagnosis == .suspicious {
+            return "Check whether the product was wet, impure, or weighed with residual solvent."
+        }
+
+        return "Use the generated conclusion as a concise pre-lab explanation."
+    }
+
+    var caseVerdict: String {
+        switch readiness {
+        case .inProgress:
+            return "Evidence still being collected"
+        case .ready:
+            return "Case evidence supports lab readiness"
+        case .needsReview:
+            return "Case needs targeted mechanism review"
+        case .dataSuspicious:
+            return "Case blocked by suspicious data"
+        }
+    }
+
+    var notebookConclusion: String {
+        switch readiness {
+        case .inProgress:
+            return "The case file is not complete yet. Start by confirming the moisture risk, then collect the mechanism proof cards, complete the reasoning challenge, and classify the yield data."
+        case .ready:
+            return "The evidence supports a lab-ready Grignard explanation: dry conditions protect the C-Mg bond, the methyl carbon acts as the nucleophile, carbonyl activation and curved-arrow electron flow form a magnesium alkoxide, and acid workup gives the alcohol. The yield result, \(yieldSummary.lowercased()), is consistent with a realistic experimental outcome."
+        case .needsReview:
+            return "The case file needs review before it is notebook-ready. \(nextRecommendation) The final explanation should connect safety, nucleophilic attack, alkoxide formation, and workup without skipping the intermediate."
+        case .dataSuspicious:
+            return "The mechanism evidence may be strong, but the yield is above 100% or otherwise suspicious. Treat the data as unresolved until wet product, residual solvent, impurity, or weighing error has been checked."
+        }
     }
 
     var conclusionTitle: String {
@@ -82,8 +303,150 @@ struct LabCaseFile: Equatable {
             totalQuestions: 4,
             misconceptions: []
         ),
-        yieldRecord: YieldRecord(percent: 68.5, diagnosis: .reasonable)
+        yieldRecord: YieldRecord(percent: 68.5, diagnosis: .reasonable),
+        reviewedMechanismProofIDs: Set(MechanismProof.allCases.map(\.rawValue))
     )
+}
+
+struct CaseEvidenceItem: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let detail: String
+    let icon: String
+    let tintRole: CaseTintRole
+    let isConfirmed: Bool
+}
+
+struct CaseBlocker: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let detail: String
+    let icon: String
+}
+
+enum CaseTintRole: Equatable {
+    case accent
+    case success
+    case mechanism
+    case warning
+    case neutral
+
+    var color: Color {
+        switch self {
+        case .accent:
+            return ChemVaultTheme.accent
+        case .success:
+            return ChemVaultTheme.success
+        case .mechanism:
+            return ChemVaultTheme.softAccent
+        case .warning:
+            return ChemVaultTheme.warning
+        case .neutral:
+            return ChemVaultTheme.tertiaryText
+        }
+    }
+}
+
+enum MentorGrade: String, Equatable {
+    case distinction = "A"
+    case strong = "B+"
+    case review = "C"
+    case incomplete = "In progress"
+
+    var title: String {
+        switch self {
+        case .distinction:
+            return "Distinction"
+        case .strong:
+            return "Strong"
+        case .review:
+            return "Review"
+        case .incomplete:
+            return "Collecting evidence"
+        }
+    }
+
+    var tintRole: CaseTintRole {
+        switch self {
+        case .distinction, .strong:
+            return .success
+        case .review:
+            return .warning
+        case .incomplete:
+            return .accent
+        }
+    }
+}
+
+enum MechanismProof: String, CaseIterable, Equatable {
+    case polarity
+    case coordination
+    case orbitalAlignment
+    case electronFlow
+    case alkoxide
+    case workup
+
+    var title: String {
+        switch self {
+        case .polarity:
+            return "C-Mg polarity"
+        case .coordination:
+            return "O to Mg activation"
+        case .orbitalAlignment:
+            return "HOMO to LUMO match"
+        case .electronFlow:
+            return "Curved-arrow proof"
+        case .alkoxide:
+            return "Alkoxide intermediate"
+        case .workup:
+            return "Acid workup"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .polarity:
+            return "The methyl carbon carries nucleophilic character."
+        case .coordination:
+            return "Magnesium coordination makes the carbonyl easier to attack."
+        case .orbitalAlignment:
+            return "Electron donation is explained by orbital overlap."
+        case .electronFlow:
+            return "Bond formation and pi-electron movement happen together."
+        case .alkoxide:
+            return "The first product is a magnesium alkoxide, not the alcohol."
+        case .workup:
+            return "Acid workup protonates the alkoxide to finish the reaction."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .polarity:
+            return "plusminus"
+        case .coordination:
+            return "link"
+        case .orbitalAlignment:
+            return "scope"
+        case .electronFlow:
+            return "arrow.triangle.branch"
+        case .alkoxide:
+            return "minus.circle.fill"
+        case .workup:
+            return "drop.fill"
+        }
+    }
+
+    func evidenceItem(isConfirmed: Bool) -> CaseEvidenceItem {
+        CaseEvidenceItem(
+            id: "mechanism-\(rawValue)",
+            title: title,
+            detail: isConfirmed ? detail : "Review this scene in Mechanism Cinema.",
+            icon: icon,
+            tintRole: isConfirmed ? .mechanism : .neutral,
+            isConfirmed: isConfirmed
+        )
+    }
 }
 
 struct SafetyDiagnosis: Equatable {
