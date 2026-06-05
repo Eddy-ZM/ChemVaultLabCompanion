@@ -41,20 +41,7 @@ struct HomeView: View {
 
     private var hero: some View {
         VStack(spacing: 22) {
-            ZStack {
-                Circle()
-                    .fill(ChemVaultTheme.accent.opacity(0.18))
-                    .frame(width: 132, height: 132)
-                    .blur(radius: 4)
-
-                Circle()
-                    .stroke(ChemVaultTheme.accent.opacity(0.25), lineWidth: 1)
-                    .frame(width: 146, height: 146)
-
-                Image(systemName: "atom")
-                    .font(.system(size: 76, weight: .medium))
-                    .foregroundStyle(ChemVaultTheme.accent)
-            }
+            AnimatedAtomBadge(size: 146, tint: ChemVaultTheme.accent, delay: 0.10)
             .floating(amount: 5)
 
             VStack(spacing: 8) {
@@ -73,6 +60,7 @@ struct HomeView: View {
                     .padding(.top, 4)
             }
         }
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: 34)
     }
 
     private var caseHypothesis: some View {
@@ -217,6 +205,7 @@ struct HomeRouteCard: View {
             tint: ChemVaultTheme.accent.opacity(0.06),
             interactive: true
         )
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: 24)
         .pressableFeedback()
     }
 }
@@ -248,5 +237,6 @@ struct CaseDossierRow: View {
         .padding(10)
         .background(.white.opacity(0.045))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: 14)
     }
 }

@@ -117,6 +117,7 @@ struct SafetyScanView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: 26)
     }
 
     private var riskDiagnosisPanel: some View {
@@ -181,8 +182,11 @@ struct SafetyScanView: View {
 
     private var safetyFeedback: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: identifiedMoistureRisk ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .foregroundStyle(identifiedMoistureRisk ? ChemVaultTheme.success : ChemVaultTheme.warning)
+            DiagnosticSeal(
+                title: identifiedMoistureRisk ? "confirmed" : "review",
+                icon: identifiedMoistureRisk ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
+                tint: identifiedMoistureRisk ? ChemVaultTheme.success : ChemVaultTheme.warning
+            )
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(identifiedMoistureRisk ? "Critical finding confirmed" : "Critical moisture risk missed")
@@ -204,6 +208,7 @@ struct SafetyScanView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke((identifiedMoistureRisk ? ChemVaultTheme.success : ChemVaultTheme.warning).opacity(0.25), lineWidth: 1)
         )
+        .scanSweep(active: true, tint: identifiedMoistureRisk ? ChemVaultTheme.success : ChemVaultTheme.warning, cornerRadius: 18)
     }
 
     private func toggleRisk(_ id: String) {
@@ -292,6 +297,11 @@ struct SafetyRiskFactorCard: View {
             )
         }
         .buttonStyle(.plain)
+        .scanSweep(
+            active: isSelected || (revealed && factor.isCritical),
+            tint: revealed && factor.isCritical ? ChemVaultTheme.success : ChemVaultTheme.accent,
+            cornerRadius: 18
+        )
         .pressableFeedback()
     }
 }
@@ -321,5 +331,6 @@ struct SafetyCardView: View {
         .padding()
         .background(ChemVaultTheme.card)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: 20)
     }
 }

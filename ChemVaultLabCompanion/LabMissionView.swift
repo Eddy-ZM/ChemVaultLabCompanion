@@ -84,20 +84,7 @@ struct LabMissionView: View {
 
     private func missionHero(compact: Bool) -> some View {
         VStack(spacing: compact ? 16 : 22) {
-            ZStack {
-                Circle()
-                    .fill(ChemVaultTheme.accent.opacity(0.16))
-                    .frame(width: compact ? 108 : 138, height: compact ? 108 : 138)
-                    .blur(radius: 3)
-
-                Circle()
-                    .stroke(ChemVaultTheme.accent.opacity(0.28), lineWidth: 1)
-                    .frame(width: compact ? 124 : 158, height: compact ? 124 : 158)
-
-                Image(systemName: "flask.fill")
-                    .font(.system(size: compact ? 52 : 70, weight: .semibold))
-                    .foregroundStyle(ChemVaultTheme.accent)
-            }
+            AnimatedFlaskBadge(size: compact ? 124 : 158, tint: ChemVaultTheme.accent, delay: 0.08)
 
             VStack(spacing: 8) {
                 Text("Case 04")
@@ -116,6 +103,7 @@ struct LabMissionView: View {
                     .padding(.horizontal, compact ? 4 : 32)
             }
         }
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: compact ? 28 : 34)
     }
 
     private func missionBriefing(compact: Bool) -> some View {
@@ -339,6 +327,7 @@ struct MissionObjectiveCard: View {
             )
         }
         .buttonStyle(.plain)
+        .scanSweep(active: isSelected, tint: ChemVaultTheme.accent, cornerRadius: 22)
         .pressableFeedback()
     }
 }
@@ -365,6 +354,7 @@ struct SimulationStepDot: View {
                 .foregroundStyle(active ? ChemVaultTheme.text : ChemVaultTheme.tertiaryText)
         }
         .frame(maxWidth: .infinity)
+        .scanSweep(active: active, tint: ChemVaultTheme.accent, cornerRadius: 15)
     }
 }
 

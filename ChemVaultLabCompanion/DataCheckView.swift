@@ -120,6 +120,7 @@ struct DataCheckView: View {
                         }
                     }
                 }
+                .scanSweep(active: true, tint: yieldDiagnosis.tint, cornerRadius: 70)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Percentage Yield")
@@ -144,8 +145,11 @@ struct DataCheckView: View {
         ChemCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Image(systemName: yieldDiagnosis.icon)
-                        .foregroundStyle(yieldDiagnosis.tint)
+                    DiagnosticSeal(
+                        title: yieldDiagnosis == .notCalculated ? "awaiting data" : "diagnosed",
+                        icon: yieldDiagnosis.icon,
+                        tint: yieldDiagnosis.tint
+                    )
 
                     Text("Interpretation")
                         .font(.title3.bold())
@@ -171,13 +175,11 @@ struct DataCheckView: View {
 
                     Spacer()
 
-                    Text(yieldDiagnosis.title)
-                        .font(.caption.bold())
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(yieldDiagnosis.tint)
-                        .clipShape(Capsule())
+                    DiagnosticSeal(
+                        title: yieldDiagnosis.title,
+                        icon: yieldDiagnosis.icon,
+                        tint: yieldDiagnosis.tint
+                    )
                 }
 
                 Text(yieldDiagnosis.notebookInterpretation)
@@ -279,6 +281,7 @@ struct YieldBandRow: View {
         .padding(9)
         .background(active ? tint.opacity(0.12) : .white.opacity(0.035))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .scanSweep(active: active, tint: tint, cornerRadius: 14)
     }
 }
 

@@ -87,15 +87,7 @@ struct MechanismExplorerView: View {
     private func header(compact: Bool) -> some View {
         PremiumGlassPanel(cornerRadius: compact ? 24 : 34) {
             HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(ChemVaultTheme.accent.opacity(0.16))
-                        .frame(width: compact ? 44 : 62, height: compact ? 44 : 62)
-
-                    Image(systemName: "atom")
-                        .font(.system(size: compact ? 23 : 32, weight: .semibold))
-                        .foregroundStyle(ChemVaultTheme.accent)
-                }
+                AnimatedAtomBadge(size: compact ? 52 : 68, tint: ChemVaultTheme.accent, delay: 0.04)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Mechanism Cinema")
@@ -111,6 +103,7 @@ struct MechanismExplorerView: View {
                 Spacer()
             }
         }
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: compact ? 24 : 34)
     }
 
     private func topBar(compact: Bool) -> some View {
@@ -278,6 +271,15 @@ private struct MechanismProofCard: View {
                     .font(.caption)
                     .foregroundStyle(ChemVaultTheme.tertiaryText)
                     .fixedSize(horizontal: false, vertical: true)
+
+                ProofUnlockBanner(
+                    title: "Mechanism proof unlocked",
+                    detail: proof.title,
+                    icon: proof.icon,
+                    tint: ChemVaultTheme.softAccent,
+                    trigger: step.rawValue
+                )
+                .padding(.top, 2)
             }
 
             Spacer(minLength: 0)
@@ -289,6 +291,7 @@ private struct MechanismProofCard: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(ChemVaultTheme.softAccent.opacity(0.16), lineWidth: 1)
         )
+        .scanSweep(active: true, tint: ChemVaultTheme.softAccent, cornerRadius: 22)
         .animation(.spring(response: 0.55, dampingFraction: 0.84), value: step.rawValue)
     }
 }

@@ -69,20 +69,12 @@ struct LabNotebookSummaryView: View {
 
         return PremiumGlassPanel(cornerRadius: compact ? 26 : 36) {
             VStack(spacing: compact ? 16 : 22) {
-                ZStack {
-                    Circle()
-                        .fill(tint.opacity(0.16))
-                        .frame(width: compact ? 92 : 124, height: compact ? 92 : 124)
-                        .blur(radius: 3)
-
-                    Circle()
-                        .stroke(tint.opacity(0.35), lineWidth: 1)
-                        .frame(width: compact ? 112 : 148, height: compact ? 112 : 148)
-
-                    Image(systemName: caseFile.readiness.icon)
-                        .font(.system(size: compact ? 54 : 72, weight: .semibold))
-                        .foregroundStyle(tint)
-                }
+                AnimatedAtomBadge(
+                    size: compact ? 112 : 148,
+                    tint: tint,
+                    symbol: caseFile.readiness.icon,
+                    delay: 0.05
+                )
 
                 VStack(spacing: 8) {
                     Text(caseFile.conclusionTitle)
@@ -95,9 +87,17 @@ struct LabNotebookSummaryView: View {
                         .foregroundStyle(ChemVaultTheme.secondaryText)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    DiagnosticSeal(
+                        title: caseFile.readiness.statusText,
+                        icon: caseFile.readiness.icon,
+                        tint: tint,
+                        delay: 0.18
+                    )
                 }
             }
         }
+        .scanSweep(active: true, tint: tint, cornerRadius: compact ? 26 : 36)
     }
 
     private func achievementGrid(compact: Bool) -> some View {
@@ -222,6 +222,7 @@ struct LabNotebookSummaryView: View {
                             .padding(.vertical, 10)
                             .background(selectedSection == section ? ChemVaultTheme.accent : .white.opacity(0.055))
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .scanSweep(active: selectedSection == section, tint: ChemVaultTheme.accent, cornerRadius: 16)
                         }
                         .buttonStyle(.plain)
                     }
@@ -287,13 +288,11 @@ struct LabNotebookSummaryView: View {
 
                     Spacer()
 
-                    Text(caseFile.mentorGrade.rawValue)
-                        .font(.caption.bold())
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(caseFile.mentorGrade.tintRole.color)
-                        .clipShape(Capsule())
+                    DiagnosticSeal(
+                        title: caseFile.mentorGrade.rawValue,
+                        icon: "checkmark.seal.fill",
+                        tint: caseFile.mentorGrade.tintRole.color
+                    )
                 }
 
                 Text(caseFile.notebookConclusion)
@@ -534,6 +533,7 @@ struct NotebookAchievementCard: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(tint.opacity(0.16), lineWidth: 1)
         )
+        .scanSweep(active: true, tint: tint, cornerRadius: 22)
     }
 }
 
@@ -575,6 +575,7 @@ struct NotebookCaseReportCard: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(tint.opacity(0.16), lineWidth: 1)
         )
+        .scanSweep(active: true, tint: tint, cornerRadius: 18)
     }
 }
 
@@ -613,6 +614,7 @@ struct NotebookBlockerRow: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(ChemVaultTheme.warning.opacity(0.18), lineWidth: 1)
         )
+        .scanSweep(active: true, tint: ChemVaultTheme.warning, cornerRadius: 18)
     }
 }
 

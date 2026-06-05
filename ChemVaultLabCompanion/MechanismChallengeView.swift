@@ -114,15 +114,12 @@ struct MechanismChallengeView: View {
     private func header(compact: Bool) -> some View {
         PremiumGlassPanel(cornerRadius: compact ? 24 : 34) {
             HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(ChemVaultTheme.accent.opacity(0.16))
-                        .frame(width: compact ? 46 : 64, height: compact ? 46 : 64)
-
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: compact ? 23 : 32, weight: .semibold))
-                        .foregroundStyle(ChemVaultTheme.accent)
-                }
+                AnimatedAtomBadge(
+                    size: compact ? 54 : 70,
+                    tint: ChemVaultTheme.accent,
+                    symbol: "checkmark.seal.fill",
+                    delay: 0.04
+                )
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Mechanism Challenge")
@@ -138,6 +135,7 @@ struct MechanismChallengeView: View {
                 Spacer()
             }
         }
+        .scanSweep(active: true, tint: ChemVaultTheme.accent, cornerRadius: compact ? 24 : 34)
     }
 
     private func challengeProgress(compact: Bool) -> some View {
@@ -241,12 +239,16 @@ struct MechanismChallengeView: View {
 
     private func feedbackCard(compact: Bool) -> some View {
         let correct = selectedAnswer == question.correctIndex
+        let tint = correct ? ChemVaultTheme.success : ChemVaultTheme.warning
 
         return PremiumGlassPanel(cornerRadius: compact ? 22 : 28) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(correct ? ChemVaultTheme.success : ChemVaultTheme.warning)
+                    DiagnosticSeal(
+                        title: correct ? "proof unlocked" : "review proof",
+                        icon: correct ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
+                        tint: tint
+                    )
 
                     Text(correct ? "Correct reasoning" : "Not quite")
                         .font(.headline)
@@ -259,8 +261,17 @@ struct MechanismChallengeView: View {
                     .font(.subheadline)
                     .foregroundStyle(ChemVaultTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
+
+                ProofUnlockBanner(
+                    title: correct ? "Reasoning evidence added" : "Misconception flagged",
+                    detail: question.title,
+                    icon: question.visualMode.icon,
+                    tint: tint,
+                    trigger: currentQuestion + (correct ? 100 : 200)
+                )
             }
         }
+        .scanSweep(active: true, tint: tint, cornerRadius: compact ? 22 : 28)
     }
 
     private func bottomActionBar(compact: Bool) -> some View {
@@ -445,6 +456,7 @@ struct AnswerOptionCard: View {
             )
         }
         .buttonStyle(.plain)
+        .scanSweep(active: selected || isCorrect || isWrong, tint: scanTint, cornerRadius: 20)
         .pressableFeedback()
     }
 
@@ -485,5 +497,15 @@ struct AnswerOptionCard: View {
             return ChemVaultTheme.accent.opacity(0.35)
         }
         return .white.opacity(0.06)
+    }
+
+    private var scanTint: Color {
+        if isCorrect {
+            return ChemVaultTheme.success
+        }
+        if isWrong {
+            return ChemVaultTheme.warning
+        }
+        return ChemVaultTheme.accent
     }
 }
